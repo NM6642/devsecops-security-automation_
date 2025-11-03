@@ -1,0 +1,70 @@
+name: DevSecOps Security Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  tfsec:
+    name: IaC Security Scan (tfsec)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+          key: terraform-plugin-cache-${{ hashFiles('**/*.tf') }}
+          restore-keys: terraform-plugin-cache-
+
+      - name: Run tfsec (IaC scan)
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          directory: .
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          exclude: |
+            .terraform
+            venv
+
+  trivy:
+    name: Container Vulnerability Scan (Trivy)
+    runs-on: ubuntu-latest
+    needs: tfsec
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: docker-cache-${{ github.sha }}
+          restore-keys: docker-cache-
+
+      - name: Build Docker image
+        run: |
+          docker build --cache-from=type=local,src=/tmp/.buildx-cache \
+                       --cache-to=type=local,dest=/tmp/.buildx-cache-new,mode=max \
+                       -t devsecops-demo:latest .
+          rm -rf /tmp/.buildx-cache && mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@v0.11.0
+        with:
+          image-ref: devsecops-demo:latest
+          severity: HIGH,CRITICAL
+          exit-code: 1
+          ignore-unfixed: true
+          vuln-type: os,library
