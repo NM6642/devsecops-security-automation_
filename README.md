@@ -67,7 +67,7 @@ Pipeline fails based on security gates — catching misconfigurations early.
    - Public access exposure
    - Lack of encryption
    - Missing bucket policy controls
-3. If vulnerabilities exist → ❌ Pipeline fails to protect infrastructure.
+3. If vulnerabilities exist →  Pipeline fails to protect infrastructure.
 4. After fixing misconfigurations →  tfsec passes and Trivy runs.
 5. **Trivy scans Docker image** for HIGH/CRITICAL vulnerabilities.
 6. Only when **both scans pass** is the pipeline allowed to continue.
@@ -133,7 +133,7 @@ This project showcases how DevSecOps improves cloud security by shifting securit
 
 ---
 
-🛡️ Final Takeaway  
+ Final Takeaway  
 > DevSecOps ensures that **security and automation go hand-in-hand** — preventing breaches BEFORE anything hits production.
 
 
